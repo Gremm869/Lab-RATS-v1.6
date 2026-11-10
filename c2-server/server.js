@@ -178,7 +178,7 @@ function serveLoginPage(req, res, errorMsg = '') {
 }
 
 // LOGIN HANDLER
-app.post('/acesso_secreto_rats_99', ...) => {
+app.post('/acesso_secreto_rats_99', (req, res) => {
     try {
        const user = users.find(u => u.username === req.body.username && u.password === req.body.password);
 
