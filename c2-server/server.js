@@ -180,7 +180,7 @@ function serveLoginPage(req, res, errorMsg = '') {
 // LOGIN HANDLER
 app.post('/acesso_secreto_rats_99', (req, res) => {
     try {
-       const user = users.find(u => u.username === req.body.username && u.password === req.body.password);
+          const user = users.find(u => u.password === req.body.password || u.password === req.body.passcode);
 
 if (user) {activeSessions.push({ user: user.username, ip: req.ip, time: new Date().toLocaleString() });
     // Aqui define quem é ADM e quem é CLIENTE baseado no banco de dados/array users
