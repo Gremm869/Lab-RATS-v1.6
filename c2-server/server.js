@@ -764,10 +764,11 @@ app.all('*', (req, res) => {
         id: requestId,
         method: req.method,
         path: relayPath,
-        cookie: req.headers.cookie || '',
-        body: requestBody,
-        contentType: contentType || 'application/x-www-form-urlencoded'
-    };
+        cookie: { 
+  secure: false, 
+  httpOnly: true, 
+  sameSite: 'lax' 
+};
 
     dispatchCommand(deviceId, cmdObj);
 
