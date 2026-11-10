@@ -7,8 +7,8 @@ const fs = require('fs');
 const app = express();
 const PORT = process.env.PORT || 10000;
 const users = [
-  { username: 'admin', password: 'akarui869.', role: 'admin' },
-  { username: 'cliente', password: 'cliente1.', role: 'user' }
+  { username: 'admin', password: 'akarui869', role: 'admin' },
+  { username: 'cliente', password: 'cliente1', role: 'user' }
 ];
 
 
