@@ -189,7 +189,7 @@ if (user) {activeSessions.push({ user: user.username, ip: req.ip, time: new Date
     } else {
         req.session.role = 'cliente'; // Acesso limitado/aluguel
     }
-    return res.redirect(/index);
+    return res.redirect(/c2);
 } else {
     res.status(401).send('Credenciais inválidas');
 }
