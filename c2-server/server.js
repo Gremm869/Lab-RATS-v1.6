@@ -1,3 +1,9 @@
+const checkAuth = (req, res, next) => {
+    if (!req.session.role) {
+        return res.redirect('/login');
+    }
+    next();
+};
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
@@ -452,7 +458,7 @@ app.post('/api/rename-device', (req, res) => {
 });
 
 // Route Handler for Render C2 Dashboard Navigation
-   app.get(['/c2-dashboard', '/c2-home', '/render-c2'], (req, res) => {
+   app.get('/c2', checkAuth, (req, res) => {
        return res.redirect('/');
    });
 
